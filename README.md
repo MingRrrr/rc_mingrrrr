@@ -84,7 +84,8 @@ graph LR
 *   **依赖**: 标准库 + (可选) SQLite/Redis 驱动。为简化运行，默认使用 **内存队列 (Buffered Channel)** 模拟 MQ。
 *   **目录结构**:
     *   `main.go`: 程序入口与 HTTP Server。
-    *   `internal/notification`: 核心业务逻辑。
+    *   `internal/handler`: HTTP 请求处理逻辑（如 /notify）。
+    *   `internal/model`: 数据模型定义。
     *   `internal/queue`: 队列接口定义与内存实现。
     *   `internal/worker`: 消费者与重试逻辑。
 * **未来演进**:

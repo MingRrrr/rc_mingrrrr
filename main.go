@@ -1,14 +1,10 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
 	"log"
-	"math/rand"
 	"net/http"
-	"time"
 
-	"notification-system/internal/model"
+	"notification-system/internal/handler"
 	"notification-system/internal/queue"
 	"notification-system/internal/worker"
 )
@@ -31,45 +27,8 @@ func main() {
 	d.Run()
 
 	// 3. Define HTTP Handler
-	http.HandleFunc("/notify", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
-		var req model.NotificationRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid JSON body", http.StatusBadRequest)
-			return
-		}
-
-		// Basic Validation
-		if req.TargetURL == "" {
-			http.Error(w, "target_url is required", http.StatusBadRequest)
-			return
-		}
-
-		// Create Task
-		// In production, ID should be a UUID.
-		task := &model.Task{
-			ID:         fmt.Sprintf("%d-%d", time.Now().UnixNano(), rand.Intn(10000)),
-			Request:    req,
-			MaxRetries: 3, // Default retry policy: 3 times
-			CreatedAt:  time.Now(),
-		}
-
-		// Enqueue Task
-		if err := q.Enqueue(task); err != nil {
-			// If internal queue is full, return 503 to backpressure the caller
-			http.Error(w, "System busy, please try again later", http.StatusServiceUnavailable)
-			return
-		}
-
-		// Return 202 Accepted immediately
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusAccepted)
-		w.Write([]byte(`{"status":"accepted", "task_id":"` + task.ID + `"}`))
-	})
+	notifyHandler := handler.NewNotifyHandler(q)
+	http.Handle("/notify", notifyHandler)
 
 	// 4. Start Server
 	log.Println("Notification System MVP started on :8080")
